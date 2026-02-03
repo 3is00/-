@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عيد ميلاد سعيد مريومة</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a0a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+        }
+        #message {
+            margin-top: 5%;
+            color: #ff007f;
+            font-size: 4.5rem;
+            font-weight: bold;
+            text-shadow: 0 0 20px #ff007f, 0 0 40px #ff007f;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-family: 'Brush Script MT', cursive;
+        }
+        #message.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+        #question-box {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 0, 127, 0.3);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: auto;
+            animation: fadeIn 1s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .question-text {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-family: 'Comic Sans MS', cursive;
+        }
+        .buttons {
+            display: flex;
+            gap: 30px;
+            position: relative;
+            min-width: 200px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 10px 30px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: transform 0.2s, background 0.3s;
+        }
+        #yes-btn {
+            background: #4caf50;
+            color: white;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+        #no-btn {
+            background: #f44336;
+            color: white;
+            position: absolute;
+            left: 120px;
+            box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
+        }
+
+        /* نافذة النجاح الجديدة */
+        #success-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: 0 0 100px rgba(255, 0, 127, 0.6);
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            border: 4px solid #ff007f;
+        }
+        #success-modal.active {
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: auto;
+        }
+        .modal-text {
+            color: #ff007f;
+            font-size: 3rem;
+            font-family: 'Brush Script MT', cursive;
+            margin-bottom: 20px;
+            display: block;
+        }
+        .hearts-container {
+            font-size: 2rem;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        #close-modal {
+            margin-top: 20px;
+            background: #ff007f;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="message">H.B.D MARYOMA</div>
+        <div id="question-box">
+            <div class="question-text">Are you happy? ❤️</div>
+            <div class="buttons">
+                <button id="yes-btn" class="btn">Yes!</button>
+                <button id="no-btn" class="btn">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- النافذة المنبثقة الجديدة -->
+    <div id="success-modal">
+        <div class="hearts-container">💖✨💖</div>
+        <span class="modal-text">You are the best engineer!</span>
+        <div class="hearts-container">👩‍💻🛠️👷‍♀️</div>
+        <button id="close-modal">Thank you! ❤️</button>
+    </div>
+
+    <canvas id="birthdayCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('birthdayCanvas');
+        const ctx = canvas.getContext('2d');
+        const messageDiv = document.getElementById('message');
+        const questionBox = document.getElementById('question-box');
+        const noBtn = document.getElementById('no-btn');
+        const yesBtn = document.getElementById('yes-btn');
+        const successModal = document.getElementById('success-modal');
+        const closeModal = document.getElementById('close-modal');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let layers = [
+            { y: -300, targetY: canvas.height * 0.8, w: 250, h: 60, color: '#ff85a2', landed: false, delay: 0 },
+            { y: -500, targetY: canvas.height * 0.8 - 60, w: 180, h: 50, color: '#f9f9f9', landed: false, delay: 60 },
+            { y: -700, targetY: canvas.height * 0.8 - 110, w: 120, h: 40, color: '#ff85a2', landed: false, delay: 120 }
+        ];
+
+        let candleOpacity = 0;
+        let particles = [];
+        let uiRevealed = false;
+
+        class Confetti {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height - canvas.height;
+                this.size = Math.random() * 8 + 4;
+                this.speed = Math.random() * 3 + 2;
+                this.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+                this.angle = Math.random() * 360;
+            }
+            update() {
+                this.y += this.speed;
+                this.angle += 2;
+                if (this.y > canvas.height) this.y = -20;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle * Math.PI / 180);
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        function initConfetti() {
+            for(let i=0; i<150; i++) particles.push(new Confetti());
+        }
+
+        function drawCakeLayer(layer) {
+            ctx.save();
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.fillStyle = layer.color;
+            const x = canvas.width / 2 - layer.w / 2;
+            let bounce = layer.landed ? Math.sin(Date.now() / 150) * 2 : 0;
+            ctx.beginPath();
+            ctx.roundRect(x, layer.y + bounce, layer.w, layer.h, 10);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath();
+            ctx.roundRect(x, layer.y + bounce, layer.w, 15, {tl:10, tr:10, bl:0, br:0});
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawCandle(x, y, opacity) {
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(x - 5, y - 40, 10, 40);
+            if (opacity >= 1) {
+                const fScale = 1 + Math.sin(Date.now() / 100) * 0.1;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ffcc00';
+                ctx.fillStyle = '#ffcc00';
+                ctx.beginPath();
+                ctx.ellipse(x, y - 55, 8 * fScale, 12 * fScale, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let allLanded = true;
+            layers.forEach(layer => {
+                if (layer.delay > 0) { layer.delay--; allLanded = false; }
+                else if (layer.y < layer.targetY) { layer.y += 12; allLanded = false; }
+                else { layer.y = layer.targetY; layer.landed = true; }
+                drawCakeLayer(layer);
+            });
+
+            if (allLanded) {
+                if (candleOpacity < 1) candleOpacity += 0.02;
+                else if (!uiRevealed) {
+                    uiRevealed = true;
+                    messageDiv.classList.add('show');
+                    setTimeout(() => questionBox.style.display = 'flex', 1000);
+                }
+                drawCandle(canvas.width / 2, layers[2].y, candleOpacity);
+                particles.forEach(p => { p.update(); p.draw(); });
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // الزر الهارب (No)
+        noBtn.addEventListener('mouseover', () => {
+            const x = (Math.random() - 0.5) * 400;
+            const y = (Math.random() - 0.5) * 400;
+            noBtn.style.transform = `translate(${x}px, ${y}px)`;
+        });
+
+        // التعامل مع زر Yes والنافذة الجديدة
+        yesBtn.addEventListener('click', () => {
+            successModal.classList.add('active');
+            // زيادة عدد القصاصات الملونة احتفالاً
+            for(let i=0; i<50; i++) particles.push(new Confetti());
+        });
+
+        closeModal.addEventListener('click', () => {
+            successModal.classList.remove('active');
+        });
+
+        initConfetti();
+        animate();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
